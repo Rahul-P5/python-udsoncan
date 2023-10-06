@@ -1,20 +1,20 @@
-from udsoncan import Request, Response, services
-from udsoncan.common.Routine import Routine
-from udsoncan.common.dtc import Dtc
-from udsoncan.common.dids import DataIdentifier
-from udsoncan.common.MemoryLocation import MemoryLocation
-from udsoncan.common.DynamicDidDefinition import DynamicDidDefinition
-from udsoncan.common.CommunicationType import CommunicationType
-from udsoncan.common.DataFormatIdentifier import DataFormatIdentifier
-from udsoncan.common.Baudrate import Baudrate
-from udsoncan.common.IOControls import IOValues, IOMasks
-from udsoncan.common.Filesize import Filesize
-from udsoncan.connections import BaseConnection
-from udsoncan.BaseService import BaseService
+from uds import Request, Response, services
+from uds.common.Routine import Routine
+from uds.common.dtc import Dtc
+from uds.common.dids import DataIdentifier
+from uds.common.MemoryLocation import MemoryLocation
+from uds.common.DynamicDidDefinition import DynamicDidDefinition
+from uds.common.CommunicationType import CommunicationType
+from uds.common.DataFormatIdentifier import DataFormatIdentifier
+from uds.common.Baudrate import Baudrate
+from uds.common.IOControls import IOValues, IOMasks
+from uds.common.Filesize import Filesize
+from uds.connections import BaseConnection
+from uds.BaseService import BaseService
 
-from udsoncan.exceptions import *
-from udsoncan.configs import default_client_config
-from udsoncan.typing import ClientConfig
+from uds.exceptions import *
+from uds.configs import default_client_config
+from uds.typing import ClientConfig
 import logging
 import binascii
 import functools
@@ -2110,16 +2110,33 @@ class Client:
             raise ValueError("REquest has no service")
 
         if timeout < 0:
-            # Timeout not provided by user: defaults to Client request_timeout value
-            overall_timeout = self.config['request_timeout']
+            if request.service.request_id() == 0x34:
+                overall_timeout = 0.01
+            else:
+                # Timeout not provided by user: defaults to Client request_timeout value
+                overall_timeout = self.config['request_timeout']
             p2 = self.config['p2_timeout'] if self.session_timing['p2_server_max'] is None else self.session_timing['p2_server_max']
             if overall_timeout is not None:
-                single_request_timeout = min(overall_timeout, p2)
+                if request.service.request_id() == 0x34:
+                    single_request_timeout = min(0.01, p2)
+                else:
+                    single_request_timeout = min(overall_timeout, p2)
             else:
-                single_request_timeout = p2
+                if request.service.request_id() == 0x34:
+                    single_request_timeout = 0.01
+                else:
+                    single_request_timeout = p2
         else:
-            overall_timeout = timeout
-            single_request_timeout = timeout
+            if request.service.request_id() == 0x34:
+                overall_timeout = 0.01
+                single_request_timeout = 0.01
+
+            else:
+                overall_timeout = timeout
+                single_request_timeout = timeout
+
+        # print(f"req id = {request.service.request_id()}, overall_timeout = {overall_timeout}, single_request_timeout ={single_request_timeout}")
+
         respect_overall_timeout = True
         if overall_timeout is None:
             respect_overall_timeout = False
